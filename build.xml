@@ -1,0 +1,110 @@
+<?xml version="1.0" ?> 
+<project name="Grid-DL" default="war">
+
+    <property file="build.properties"/>
+
+    <path id="compile.classpath">
+        <fileset dir="lib">
+            <include name="*/*.jar"/>
+        </fileset>
+    </path>
+        
+    <path id="tomcat.classpath">
+        <fileset dir="${tomcat.home}/lib">
+            <include name="*.jar"/>
+        </fileset> 
+    </path>
+	
+    <target name="init">
+        <mkdir dir="build/classes"/>
+        <mkdir dir="dist" />
+    </target>
+	
+    <target name="compile" depends="init" >
+        <javac destdir="build/classes" debug="${debug}" srcdir="src" source="1.7" target="1.7" includeantruntime="false">
+            <classpath refid="compile.classpath"/>
+            <classpath refid="tomcat.classpath"/>
+        </javac>
+        <copy todir="build/classes" file="src/java/griddl.properties"/>
+        <copy todir="build/lib" flatten="true">
+            <fileset dir="lib">
+                <include name="*/*.jar"/>
+            </fileset>
+        </copy>
+    </target>
+	
+    <target name="war" depends="compile">
+        <war destfile="dist/Grid-DL.war" webxml="web/WEB-INF/web.xml">
+            <classes dir="build/classes"/>
+            <lib dir="build/lib"/>
+            <zipfileset dir="web/jsp" prefix="jsp"/>
+            <zipfileset dir="web/WEB-INF" prefix="WEB-INF" excludes="web.xml"/>
+            <zipfileset dir="web/META-INF" prefix="META-INF"/>
+            <manifest>
+                <attribute name="Built-By" value="${builder}" />
+                <attribute name="Built-On" value="${build-info.current-date}" />
+                <attribute name="Built-At" value="${build-info.current-time}" />
+            </manifest>
+        </war>
+    </target>
+	
+    <target name="clean">
+        <delete dir="dist" />
+        <delete dir="build" />
+    </target>
+    
+    <target name="deploy" depends="clean, war, undeploy">
+        <copy todir="${tomcat.home}/webapps" file="dist/Grid-DL.war"/>
+    </target>
+    
+    <target name="undeploy">
+        <delete file="${tomcat.home}/webapps/Grid-DL.war"/>
+        <delete dir="${tomcat.home}/webapps/Grid-DL"/>
+    </target>
+    
+    <target name="tomcat-start">
+        <java classname="org.apache.catalina.startup.Bootstrap"
+              fork="yes"
+              dir="${tomcat.home}"
+              spawn="false"
+              jvm="${java.home}/bin/java">   
+            <jvmarg line="${java.args}"/>
+            <jvmarg value="-Dcatalina.home=${tomcat.home}"/>
+            <jvmarg value="-Dcatalina.home=${tomcat.home}"/>
+            <jvmarg value="-Dcatalina.base=${tomcat.home}"/>
+            <jvmarg value="-Djava.io.tmpdir=${tomcat.home}/temp"/>
+            <jvmarg value="-Djava.endorsed.dirs=${tomcat.home}/common/endorsed"/>
+            <classpath>
+                <pathelement location="${tomcat.java.home}/lib/tools.jar"/>
+                <pathelement location="${tomcat.home}/bin/bootstrap.jar"/>
+                <pathelement location="${tomcat.home}/bin/tomcat-juli.jar"/>
+            </classpath>
+            <arg line="start" /> 
+        </java>
+    </target>
+
+    <target name="tomcat-stop">
+        <java classname="org.apache.catalina.startup.Bootstrap"
+              fork="yes"
+              dir="${tomcat.home}"
+              spawn="false"
+              jvm="${java.home}/bin/java">   
+            <jvmarg value="-Dcatalina.home=${tomcat.home}"/>
+            <jvmarg value="-Dcatalina.home=${tomcat.home}"/>
+            <jvmarg value="-Dcatalina.base=${tomcat.home}"/>
+            <jvmarg value="-Djava.io.tmpdir=${tomcat.home}/temp"/>
+            <jvmarg value="-Djava.endorsed.dirs=${tomcat.home}/common/endorsed"/>
+            <classpath>
+                <pathelement location="${tomcat.java.home}/lib/tools.jar"/>
+                <pathelement location="${tomcat.home}/bin/bootstrap.jar"/>
+                <pathelement location="${tomcat.home}/bin/tomcat-juli.jar"/>
+            </classpath>
+            <arg line="stop" /> 
+        </java>
+    </target>
+    
+    <target name="_run" depends="clean, war, undeploy, deploy, tomcat-start"/>
+    
+    <target name="_stop" depends="tomcat-stop"/>
+    
+</project>
